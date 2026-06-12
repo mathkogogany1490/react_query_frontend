@@ -1,0 +1,55 @@
+# React 빌드 결과물을 공유하기 위한 Volume
+volumes:
+  react-dist:
+
+services:
+
+  # React(Vite) 빌드 전용 컨테이너
+  frontend:
+    build:
+      context: ./frontend
+
+    container_name: react-builder
+
+    # 빌드 결과물을 공유 볼륨에 저장
+    volumes:
+      - react-dist:/dist
+
+    command: >
+      sh -c "
+      npm ci &&
+      npm run build &&
+      cp -r dist/. /dist
+      "
+
+  # json-server API
+  backend:
+    build:
+      context: ./frontend/server
+
+    container_name: backend
+
+    ports:
+      - "3001:3001"
+
+    restart: always
+
+  # Nginx 웹 서버
+  nginx:
+    build:
+      context: ./nginx
+
+    container_name: react-nginx
+
+    ports:
+      - "80:80"
+
+    # React 빌드 결과물 마운트
+    volumes:
+      - react-dist:/usr/share/nginx/html
+
+    depends_on:
+      - frontend
+      - backend
+
+    restart: always
